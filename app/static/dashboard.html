@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Acme DWH — Terminal</title>
+<!-- Chart.js + fonts load from CDN; vendor them locally for a fully offline demo. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --panel: #0f141d;
+    --panel-2: #141b26;
+    --line: #1e2733;
+    --txt: #c9d4e3;
+    --muted: #6b7a90;
+    --amber: #e8b339;
+    --up: #3fb950;
+    --down: #f0566d;
+    --accent: #4aa3df;
+    --mono: "IBM Plex Mono", ui-monospace, "Courier New", monospace;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--txt); font-family: var(--sans);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 44px 44px; background-position: -1px -1px;
+    background-blend-mode: soft-light;
+  }
+  body::before { content:""; position:fixed; inset:0; background:radial-gradient(
+      ellipse at 70% -10%, rgba(74,163,223,.10), transparent 55%); pointer-events:none; }
+  header {
+    display:flex; align-items:center; gap:24px; padding:14px 22px;
+    border-bottom:1px solid var(--line); background:rgba(10,14,20,.85);
+    backdrop-filter:blur(6px); position:sticky; top:0; z-index:5;
+  }
+  .brand { font-family:var(--mono); font-weight:600; letter-spacing:.14em; }
+  .brand b { color:var(--amber); }
+  .brand span { color:var(--muted); font-weight:400; }
+  .clock { margin-left:auto; display:flex; align-items:center; gap:12px; font-family:var(--mono); font-size:13px; }
+  .clock label { color:var(--muted); }
+  input[type=date] {
+    background:var(--panel-2); border:1px solid var(--line); color:var(--txt);
+    font-family:var(--mono); padding:6px 9px; border-radius:6px; color-scheme:dark;
+  }
+  button {
+    background:var(--panel-2); border:1px solid var(--line); color:var(--txt);
+    font-family:var(--mono); padding:6px 12px; border-radius:6px; cursor:pointer;
+  }
+  button:hover { border-color:var(--accent); color:#fff; }
+  .layout { display:grid; grid-template-columns:280px 1fr; min-height:calc(100vh - 57px); }
+  aside { border-right:1px solid var(--line); padding:14px; }
+  .aside-h { font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+    color:var(--muted); text-transform:uppercase; margin:4px 6px 12px; }
+  .asset { display:flex; align-items:baseline; gap:8px; padding:10px 12px;
+    border:1px solid transparent; border-radius:8px; cursor:pointer; }
+  .asset:hover { background:var(--panel); border-color:var(--line); }
+  .asset.active { background:var(--panel-2); border-color:var(--accent); }
+  .asset .sym { font-family:var(--mono); font-weight:600; }
+  .asset .cls { font-size:10px; color:var(--muted); margin-left:auto;
+    border:1px solid var(--line); padding:1px 6px; border-radius:99px; text-transform:uppercase; letter-spacing:.08em; }
+  main { padding:22px 26px; }
+  .empty { color:var(--muted); font-family:var(--mono); margin-top:18vh; text-align:center; }
+  .head { display:flex; align-items:flex-end; gap:14px; margin-bottom:4px; }
+  .head h1 { font-family:var(--mono); font-size:30px; margin:0; letter-spacing:.02em; }
+  .head .desc { color:var(--muted); padding-bottom:5px; }
+  .meta { font-family:var(--mono); font-size:12px; color:var(--muted); margin-bottom:20px; }
+  .meta b { color:var(--accent); font-weight:500; }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .card .k { font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .card .v { font-family:var(--mono); font-size:24px; margin-top:8px; }
+  .card .sub { font-size:11px; color:var(--muted); margin-top:4px; }
+  .up { color:var(--up); } .down { color:var(--down); }
+  .risk-low { color:var(--up); } .risk-medium { color:var(--amber); } .risk-high { color:var(--down); }
+  .chartwrap { background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:16px 18px 8px; height:340px; }
+  .delisted { background:var(--panel); border:1px solid var(--down); border-radius:10px;
+    padding:24px; font-family:var(--mono); color:var(--down); }
+  .footer { font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:18px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><b>ACME</b> DWH <span>// financial markets data warehouse</span></div>
+  <div class="clock">
+    <label>VIEWING AS OF</label>
+    <input type="date" id="asof" />
+    <button id="now">NOW</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="aside-h">Assets</div>
+    <div id="assets"></div>
+  </aside>
+  <main id="main">
+    <div class="empty">select an asset to inspect</div>
+  </main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let selected = null;
+
+function asOfParam() {
+  const d = $("asof").value;
+  return d ? d : null;
+}
+function fmtDate(iso) {
+  const [y, m, day] = iso.slice(0, 10).split("-");
+  return day + "/" + m + "/" + y;
+}
+function q(params) {
+  const p = Object.entries(params).filter(([,v]) => v != null)
+    .map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join("&");
+  return p ? "?" + p : "";
+}
+
+async function loadAssets() {
+  const asof = asOfParam();
+  const list = await fetch("/assets" + q({ as_of: asof })).then(r => r.json());
+  const box = $("assets");
+  box.innerHTML = "";
+  if (!list.length) { box.innerHTML = `<div class="empty" style="margin:8px">none as of this date</div>`; }
+  list.forEach(a => {
+    const el = document.createElement("div");
+    el.className = "asset" + (a.asset_id === selected ? " active" : "");
+    el.innerHTML = `<span class="sym">${a.symbol}</span>
+      <span class="cls">${a.instrument_class}</span>`;
+    el.onclick = () => { selected = a.asset_id; render(); loadAssets(); };
+    box.appendChild(el);
+  });
+}
+
+function fmt(n) { return n == null ? "—" : Number(n).toLocaleString(undefined,{maximumFractionDigits:2}); }
+
+async function render() {
+  if (!selected) return;
+  const asof = asOfParam();
+  const main = $("main");
+
+  const detail = await fetch(`/assets/${encodeURIComponent(selected)}` + q({ as_of: asof }))
+    .then(r => r.ok ? r.json() : null);
+
+  if (!detail) {  // deleted / not valid as of this date — temporal model in action
+    main.innerHTML = `<div class="delisted">⚠ ${selected} is not available as of
+      ${asof || "now"}.<br>It was either delisted by this date or did not yet exist.
+      <br><br>Move the date back to see its history — nothing was deleted from storage.</div>`;
+    return;
+  }
+
+  const src = detail.source_id;
+  // end param caps observation_date so moving the date slider truncates the chart.
+  // start is pinned to the seed window so all data is visible when no date set.
+  const seriesEnd = asof || null;
+  const [ts, an] = await Promise.all([
+    fetch(`/assets/${encodeURIComponent(selected)}/timeseries` + q({ source_id: src, start: "2024-01-01", end: seriesEnd })).then(r=>r.json()),
+    fetch(`/assets/${encodeURIComponent(selected)}/analytics` + q({ source_id: src, end: seriesEnd })).then(r=>r.json()),
+  ]);
+
+  const tdir = an.trend.direction, tcls = tdir === "up" ? "up" : tdir === "down" ? "down" : "";
+  const arrow = tdir === "up" ? "▲" : tdir === "down" ? "▼" : "■";
+  main.innerHTML = `
+    <div class="head">
+      <h1>${detail.symbol}</h1>
+      <div class="desc">${detail.description || ""}</div>
+    </div>
+    <div class="meta">${detail.asset_id} · ${detail.instrument_class} · ${detail.region || "—"}
+      · source <b>${src}</b> · ${ts.count} observations</div>
+    <div class="cards">
+      <div class="card"><div class="k">Trend</div>
+        <div class="v ${tcls}">${arrow} ${fmt(an.trend.pct_change)}%</div>
+        <div class="sub">over window</div></div>
+      <div class="card"><div class="k">Risk (ann. vol)</div>
+        <div class="v risk-${an.risk.risk}">${an.risk.risk.toUpperCase()}</div>
+        <div class="sub">σ ${fmt((an.risk.volatility||0)*100)}%</div></div>
+      <div class="card"><div class="k">Forecast next</div>
+        <div class="v">${fmt(an.forecast.next_close)}</div>
+        <div class="sub">${an.forecast.method || ""}</div></div>
+      <div class="card"><div class="k">Range</div>
+        <div class="v">${fmt(an.summary.last_close)}</div>
+        <div class="sub">min ${fmt(an.summary.min_close)} · max ${fmt(an.summary.max_close)}</div></div>
+    </div>
+    <div class="chartwrap"><canvas id="chart"></canvas></div>
+    <div class="footer">Append-only · temporal warehouse · data shown is what the platform
+      held as of ${asof || "now"}.</div>`;
+
+  drawChart(ts.points);
+}
+
+let chart;
+function drawChart(points) {
+  const labels = points.map(p => fmtDate(p.observation_date));
+  const closes = points.map(p => p.indicators.close);
+  const ctx = $("chart").getContext("2d");
+  const grad = ctx.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0, "rgba(74,163,223,.35)");
+  grad.addColorStop(1, "rgba(74,163,223,0)");
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [{ data: closes, borderColor:"#4aa3df",
+      backgroundColor: grad, fill:true, tension:.25, pointRadius:0, borderWidth:1.6 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ mode:"index", intersect:false } },
+      scales:{
+        x:{ grid:{color:"#1e2733"}, ticks:{color:"#6b7a90", maxTicksLimit:8, font:{family:"IBM Plex Mono"}} },
+        y:{ grid:{color:"#1e2733"}, ticks:{color:"#6b7a90", font:{family:"IBM Plex Mono"}} }
+      }
+    }
+  });
+}
+
+$("asof").onchange = () => { loadAssets(); render(); };
+$("now").onclick = () => { $("asof").value = ""; loadAssets(); render(); };
+loadAssets();
+</script>
+</body>
+</html>
