@@ -8,6 +8,9 @@ version, deletions add a marker, and every read accepts an `as_of` date so you c
 see exactly what the warehouse held at any past moment. Different asset classes and
 providers can carry different fields (stored as free-form `attributes` / `indicators`).
 
+Here is the link to the video presentation:
+https://drive.google.com/file/d/1nxfXMHXOTlOpXpBt0tAamTNbIMEUAdeg/view?usp=sharing
+
 ## Run it (local)
 
 Needs Python 3.10+ and MongoDB running on `localhost:27017`.
@@ -114,4 +117,4 @@ Promote analytics to PySpark (UC3), LangFlow bonus flow, report + demo video.
 
 Here is the link to the video presentation:
 https://drive.google.com/file/d/1nxfXMHXOTlOpXpBt0tAamTNbIMEUAdeg/view?usp=sharing
-https://drive.google.com/file/d/1nxfXMHXOTlOpXpBt0tAamTNbIMEUAdeg/view?usp=sharing
+
