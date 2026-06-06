@@ -111,3 +111,7 @@ inspector: `pip install "mcp[cli]"` then `mcp dev mcp_server/server.py`.
 ## Still to do
 
 Promote analytics to PySpark (UC3), LangFlow bonus flow, report + demo video.
+
+Here is the link to the video presentation:
+https://drive.google.com/file/d/1nxfXMHXOTlOpXpBt0tAamTNbIMEUAdeg/view?usp=sharing
+https://drive.google.com/file/d/1nxfXMHXOTlOpXpBt0tAamTNbIMEUAdeg/view?usp=sharing
